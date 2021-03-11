@@ -2,9 +2,16 @@
 @import "./styles/cmps/ControllerPreview";
 @import "./styles/cmps/MainFader";
 @import "./styles/cmps/AdminPanel";
+@import "./styles/cmps/ProgramPreview";
+@import "./styles/cmps/MusicPlayer";
+@import "./styles/cmps/Programs";
+@import "./styles/cmps/SongList";
+@import "./styles/cmps/SongPreview";
 
 @import "./styles/cmps/Icons/PlayIcon";
-@import "./styles/cmps/icons/StopIcon";
+@import "./styles/cmps/Icons/StopIcon";
+
+@import "./styles/helpers/mixins";
 
 body {
   margin: 0;

@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
+
 import PlayIcon from "../icons/PlayIcon";
 import StopIcon from "../icons/StopIcon";
+
+import SocketService from "../services/SocketService";
 
 export default ({
   mainFaderVolume,
@@ -13,7 +16,9 @@ export default ({
 }) => {
   const handleMasterVolumeChange = (ev) => {
     setMainFaderVolume(ev.target.value);
-    console.log("master volume in precentage is", ev.target.value);
+    SocketService.emit(`main fader volume changed`, {
+      volume: ev.target.value,
+    });
   };
 
   const getPercentageChange = (oldNumber, newNumber) => {
@@ -26,12 +31,21 @@ export default ({
       oldMainFaderVolume,
       ev.target.value
     );
+
     setPrecentageChange(newPrecentageChange);
-    console.log("just now", newPrecentageChange);
     setOldMainFaderVolume(ev.target.value);
   };
 
-  useEffect(() => {}, []);
+  useEffect(() => {
+    SocketService.setup();
+    SocketService.on(`main fader new volume`, ({ volume }) => {
+      setMainFaderVolume(volume);
+    });
+    return () => {
+      SocketService.off(`main fader new volume`);
+      SocketService.terminate();
+    };
+  }, []);
 
   return (
     <div className="main-fader">

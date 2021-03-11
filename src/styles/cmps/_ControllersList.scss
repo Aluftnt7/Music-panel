@@ -3,4 +3,9 @@
   flex-direction: column;
   align-items: flex-start;
   width: 50%;
+  padding: 10px;
+  input {
+    width: 100%;
+    margin-left: 10px;
+  }
 }

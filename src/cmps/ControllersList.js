@@ -2,7 +2,13 @@ import React, { useState } from "react";
 import ControllerPreview from "../cmps/ControllerPreview";
 import MainFader from "../cmps/MainFader";
 
-export default ({ setProgram, program, isSubmitingProgram, ActiveProgram }) => {
+export default ({
+  setProgram,
+  program,
+  isSubmitingProgram,
+  ActiveProgram,
+  updateActivePlayer,
+}) => {
   const totalPlayersNumber = 8;
   const musicPlayers = new Array(totalPlayersNumber).fill(null);
 

@@ -1,0 +1,12 @@
+.program-preview {
+  .program-details {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    h4 {
+      cursor: pointer;
+      font-size: 1.5rem;
+      margin: 5px 0;
+    }
+  }
+}

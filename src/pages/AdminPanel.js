@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import ControllersList from "../cmps/ControllersList";
 import Programs from "../cmps/Programs";
+import { ProgramsService } from "../services/ProgramsService";
 
 export default () => {
   const [program, setProgram] = useState([]);
@@ -21,19 +22,35 @@ export default () => {
     setActiveProgram(program);
   };
 
-  useEffect(() => {
+  const handleDeleteProgram = (programToDelete) => {
+    let programsCopy = JSON.parse(JSON.stringify(programs));
+    let idx = programs.findIndex(
+      (program) => program._id === programToDelete._id
+    );
+    ProgramsService.deleteProgram(programToDelete);
+    programsCopy.splice(idx, 1);
+    setPrograms(programsCopy);
+  };
+
+  const updateActivePlayer = (isPlaying, idx) => {
+    console.log(idx);
+    console.log(isPlaying);
+  };
+
+  useEffect(async () => {
     if (program.length) {
-      setPrograms((programs) => [
-        ...programs,
-        { name: programName, data: program },
-      ]);
+      let updatedProgram = await ProgramsService.addProgram({
+        programName,
+        program,
+      });
+      setPrograms((programs) => [...programs, updatedProgram]);
       setProgram([]);
     }
   }, [program]);
 
-  useEffect(() => {
-    console.log(programs);
-  }, [programs]);
+  useEffect(async () => {
+    setPrograms(await ProgramsService.getPrograms());
+  }, []);
 
   return (
     <div className="admin-panel-container">
@@ -51,6 +68,7 @@ export default () => {
           setProgramName={setProgramName}
           programs={programs}
           handleSettingProgram={handleSettingProgram}
+          handleDeleteProgram={handleDeleteProgram}
         />
       </div>
     </div>
