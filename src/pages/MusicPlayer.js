@@ -24,7 +24,7 @@ export default (props) => {
   const [songObj, setSongObj] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [playList, setPlaylist] = useState([]);
-  const [playStatus, setPlayStatus] = useState(null);
+  const [playStatus, setPlayStatus] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [playingTime, setPlayingTime] = useState([
     { hours: 10, minutes: 0, seconds: 0, action: "play" },
@@ -37,14 +37,16 @@ export default (props) => {
   const conectSockets = () => {
     console.log("connecting socketes");
     SocketService.on(`change volume ${roomIdx}`, ({ newValue }) => {
+      console.log(newValue);
       setVolume(newValue / 100);
     });
     SocketService.on(`new play status ${roomIdx}`, ({ isLocalPlaying }) => {
+      console.log("new play status?", isLocalPlaying);
       setPlayStatus(isLocalPlaying);
     });
     SocketService.on(`update room number ${roomIdx}`, ({ roomCopy }) => {
-      console.log("udateing room!", roomCopy);
       setRoom(roomCopy);
+      window.location.reload(false);
     });
     SocketService.on(`check for volume status in room ${roomIdx}`, () => {
       if (volume) {
@@ -76,33 +78,20 @@ export default (props) => {
 
   const playNextSong = () => {
     setPlayStatus(false);
+    // console.log("RIGHT HERE RIGHT NOW!");
     let nextIdx = songIdx + 1;
     nextIdx %= playList.length;
+    // console.log(nextIdx);
     setSongIdx(nextIdx);
     setPlayStatus(true);
   };
 
-  const updatePlaylist = (newSong) => {
+  const getPlaylistArray = (newSong) => {
     let playlist = room.playlist.map((song) => {
       return song.songUrl;
     });
     return newSong ? playlist.push(newSong) : playlist;
   };
-
-  // const handlePlayStatus = () => {
-  //   setPlayStatus(true);
-  //   SocketService.emit(`update status from player`, {
-  //     roomIdx,
-  //     playStatus: true,
-  //   });
-  // };
-  // const handlePauseStatus = () => {
-  //   setPlayStatus(false);
-  //   SocketService.emit(`update status from player`, {
-  //     roomIdx,
-  //     playStatus: false,
-  //   });
-  // };
 
   const generatePlayingTimes = (hours, minutes, seconds) => {
     let activatingTime = new Date();
@@ -121,6 +110,7 @@ export default (props) => {
     let roomCopy = JSON.parse(JSON.stringify(room));
     idToDelete.forEach((id) => {
       const idx = roomCopy.playlist.findIndex((song) => id === song._id);
+      console.log(roomCopy.playlist[idx]);
       roomCopy.playlist.splice(idx, 1);
     });
     SocketService.emit(`room playlist updated`, {
@@ -139,7 +129,7 @@ export default (props) => {
       idx: roomIdx,
     });
     RoomService.addNewSong(songObj, roomIdx);
-    setPlaylist(updatePlaylist(songObj.songUrl));
+    setPlaylist(getPlaylistArray(songObj.songUrl));
   };
 
   const handlePlayingTime = () => {
@@ -181,26 +171,38 @@ export default (props) => {
   }, [roomIdx]);
 
   useEffect(() => {
-    SocketService.setup();
-    if (room && !playList.length && !songObj) {
-      conectSockets();
-      setPlaylist(updatePlaylist());
-    }
     if (songObj) {
       updateRoom();
     }
-    if (playList.length && !isUploading) {
-      conectSockets();
-      setPlayStatus(true);
-      return () => {
-        disconnectSockets();
-      };
-    }
     return () => {
       setSongObj(null);
+    };
+  }, [songObj]);
+
+  useEffect(() => {
+    SocketService.setup();
+    if (room) {
+      conectSockets();
+      setPlaylist(getPlaylistArray());
+    }
+    return () => {
       disconnectSockets();
     };
-  }, [room, volume, songObj, playList]);
+  }, [room, volume]);
+
+  useEffect(() => {
+    if (room) {
+      if (playList.length !== room.playlist.length) {
+        let balls = getPlaylistArray();
+        setPlaylist(balls);
+        console.log(balls);
+      }
+    }
+  }, [playList]);
+
+  useEffect(() => {
+    console.log(playStatus);
+  }, [playStatus]);
 
   return !room ? (
     <Loader />

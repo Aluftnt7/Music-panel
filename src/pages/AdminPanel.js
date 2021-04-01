@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from "react";
+
 import ControllersList from "../cmps/ControllersList";
 import Programs from "../cmps/Programs";
+
 import { ProgramsService } from "../services/ProgramsService";
+
+import RishonLogo from "../assets/png/logo-rishon.png";
+import ThalamosLogo from "../assets/png/thalamus.png";
 
 export default () => {
   const [program, setProgram] = useState([]);
@@ -54,7 +59,10 @@ export default () => {
 
   return (
     <div className="admin-panel-container">
-      <h1>AdminPanel</h1>
+      <div className="nav-bar">
+        <img className="logo" src={RishonLogo} />
+        <img className="logo" src={ThalamosLogo} />
+      </div>
       <div className="admin-panel">
         <ControllersList
           setProgram={setProgram}
