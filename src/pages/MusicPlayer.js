@@ -13,18 +13,18 @@ import Loader from "../cmps/Loader";
 import HomeIcon from "../icons/HomeIcon";
 import AddSongIcon from "../icons/AddSongIcon";
 import RemoveSongIcon from "../icons/RemoveSongIcon";
+import TrashBinIcon from "../icons/TrashBinIcon";
 
 export default (props) => {
   const [roomIdx, setRoomIdx] = useState(null);
   const [songIdx, setSongIdx] = useState(0);
   const [idToDelete, setSongIdToDelete] = useState([]);
   const [volume, setVolume] = useState(null);
-  const [isSendingData, setIsSendingData] = useState(false);
   const [room, setRoom] = useState(null);
-  const [songObg, setSongObj] = useState(null);
+  const [songObj, setSongObj] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [playList, setPlaylist] = useState([]);
-  const [playStatus, setPlayStatus] = useState(true);
+  const [playStatus, setPlayStatus] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [playingTime, setPlayingTime] = useState([
     { hours: 10, minutes: 0, seconds: 0, action: "play" },
@@ -35,21 +35,21 @@ export default (props) => {
   const musicPlayerEl = useRef();
 
   const conectSockets = () => {
+    console.log("connecting socketes");
     SocketService.on(`change volume ${roomIdx}`, ({ newValue }) => {
       setVolume(newValue / 100);
     });
     SocketService.on(`new play status ${roomIdx}`, ({ isLocalPlaying }) => {
       setPlayStatus(isLocalPlaying);
     });
+    SocketService.on(`update room number ${roomIdx}`, ({ roomCopy }) => {
+      console.log("udateing room!", roomCopy);
+      setRoom(roomCopy);
+    });
     SocketService.on(`check for volume status in room ${roomIdx}`, () => {
-      setIsSendingData(true);
-      setTimeout(() => {
-        setIsSendingData(false);
-      }, 500);
-      // console.log("volume check", volume);
-      // if (volume) {
-      //   SocketService.emit(`Active`, { roomIdx, volume });
-      // }
+      if (volume) {
+        SocketService.emit(`Active`, { roomIdx, volume });
+      }
     });
   };
 
@@ -58,7 +58,9 @@ export default (props) => {
       SocketService.off(`change volume ${roomIdx}`);
       SocketService.off(`new play status ${roomIdx}`);
       SocketService.off(`check for volume status in room ${roomIdx}`);
+      SocketService.off(`update room number ${roomIdx}`);
     }
+    console.log("disconecting sockets");
     SocketService.terminate();
   };
 
@@ -121,9 +123,23 @@ export default (props) => {
       const idx = roomCopy.playlist.findIndex((song) => id === song._id);
       roomCopy.playlist.splice(idx, 1);
     });
-    setRoom(roomCopy);
+    SocketService.emit(`room playlist updated`, {
+      roomCopy,
+      idx: roomIdx,
+    });
     setSongIdToDelete("");
     RoomService.save(roomCopy);
+  };
+
+  const updateRoom = () => {
+    let roomCopy = JSON.parse(JSON.stringify(room));
+    roomCopy.playlist.push(songObj);
+    SocketService.emit(`room playlist updated`, {
+      roomCopy,
+      idx: roomIdx,
+    });
+    RoomService.addNewSong(songObj, roomIdx);
+    setPlaylist(updatePlaylist(songObj.songUrl));
   };
 
   const handlePlayingTime = () => {
@@ -158,16 +174,6 @@ export default (props) => {
     handlePlayingTime();
   }, []);
 
-  useEffect(() => {
-    if (songObg) {
-      let roomCopy = JSON.parse(JSON.stringify(room));
-      roomCopy.playlist.push(songObg);
-      setRoom(roomCopy);
-      RoomService.addNewSong(songObg, roomIdx);
-      setPlaylist(updatePlaylist(songObg.songUrl));
-    }
-  }, [songObg]);
-
   useEffect(async () => {
     if (roomIdx) {
       setRoom(await RoomService.getRoom({ roomIdx }));
@@ -176,20 +182,25 @@ export default (props) => {
 
   useEffect(() => {
     SocketService.setup();
-    if (room) {
-      setPlaylist(updatePlaylist());
+    if (room && !playList.length && !songObj) {
       conectSockets();
+      setPlaylist(updatePlaylist());
+    }
+    if (songObj) {
+      updateRoom();
+    }
+    if (playList.length && !isUploading) {
+      conectSockets();
+      setPlayStatus(true);
+      return () => {
+        disconnectSockets();
+      };
     }
     return () => {
+      setSongObj(null);
       disconnectSockets();
     };
-  }, [room]);
-
-  useEffect(() => {
-    if (isSendingData && volume) {
-      SocketService.emit(`Active`, { roomIdx, volume });
-    }
-  }, [isSendingData]);
+  }, [room, volume, songObj, playList]);
 
   return !room ? (
     <Loader />
@@ -198,6 +209,7 @@ export default (props) => {
       <div className="music-player-header">
         <h2>{roomIdx}</h2>
         <h2>Room Name</h2>
+        {volume}
         {playList.length && (
           <div className="player-wrapper">
             <ReactPlayer
@@ -242,14 +254,25 @@ export default (props) => {
                 <input type="file" onChange={(ev) => onUploadSong(ev)} hidden />
               </label>
             </i>
-            <i
-              onClick={() => {
-                toggleIsDeleting();
-                handleDeletingSongs();
-              }}
-            >
-              <RemoveSongIcon isDeleting={isDeleting} />
-            </i>
+            {isDeleting ? (
+              <i
+                onClick={() => {
+                  toggleIsDeleting();
+                  handleDeletingSongs();
+                }}
+              >
+                <TrashBinIcon isDeleting={isDeleting} />
+              </i>
+            ) : (
+              <i
+                onClick={() => {
+                  toggleIsDeleting();
+                  handleDeletingSongs();
+                }}
+              >
+                <RemoveSongIcon isDeleting={isDeleting} />
+              </i>
+            )}
           </span>
         </div>
       )}
